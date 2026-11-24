@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Stickman VI — Jangchi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game-wrapper">
+
+    <!-- Yuqoridagi ma'lumotlar paneli -->
+    <header id="hud">
+      <div class="hud-item"><span class="hud-label">BALL</span><span id="hudScore">0</span></div>
+      <div class="hud-item"><span class="hud-label">JON</span><span id="hudHp" class="hearts"></span></div>
+      <div class="hud-item"><span class="hud-label">DARAJA</span><span id="hudLevel">1</span></div>
+      <div class="hud-item"><span class="hud-label">REKORD</span><span id="hudBest">0</span></div>
+    </header>
+
+    <div id="stage">
+      <!-- 3D sahna (Three.js) -->
+      <canvas id="gameCanvas" width="900" height="500"></canvas>
+      <!-- Ustki qatlam: ball yozuvlari, kombo, jon chiziqlari -->
+      <canvas id="fxCanvas" width="900" height="500"></canvas>
+
+      <!-- ===== Kirish animatsiyasi (intro) ===== -->
+      <section id="introScreen" class="intro hidden">
+        <div id="introFade"></div>
+        <div class="vignette"></div>
+        <div class="bar bar-top"></div>
+        <div class="bar bar-bottom"></div>
+        <div class="rec"><i></i><span>REC</span><span id="recTime">00:00</span></div>
+        <div class="cam-info"><span>KAMERA 01</span><span id="introDate"></span></div>
+        <p id="introCaption" class="intro-caption"></p>
+        <div id="introTitle" class="intro-title">
+          <div class="t1">STICKMAN <span>VI</span></div>
+          <div class="t2">JANGCHI</div>
+        </div>
+        <div id="introFlash"></div>
+        <div class="grain"></div>
+        <button id="btnSkip" class="skip">O'TKAZIB YUBORISH ▸▸</button>
+      </section>
+
+      <!-- Bosh menyu -->
+      <section id="menuScreen" class="overlay menu hidden">
+        <div class="logo">STICKMAN <span>VI</span></div>
+        <p class="logo-sub">JANGCHI</p>
+        <label for="nameInput" class="name-label">Ismingiz</label>
+        <input id="nameInput" type="text" maxlength="12" placeholder="Stickman" autocomplete="off">
+        <div class="btn-row">
+          <button id="btnStart" class="btn primary">O'YINNI BOSHLASH</button>
+          <button id="btnRecords" class="btn">REKORDLAR</button>
+          <button id="btnIntro" class="btn">INTRO</button>
+        </div>
+        <div class="help">
+          <p><b>A / D</b> yoki <b>← / →</b> — yurish</p>
+          <p><b>W / ↑ / Probel</b> — sakrash</p>
+          <p><b>Sichqoncha chap tugmasi</b> yoki <b>J / X</b> — qilich bilan urish</p>
+          <p>Ketma-ket 3 ta zarba = kombo. 3-zarba — kuchli aylanma zarba!</p>
+          <p><b>P / Esc</b> — pauza</p>
+        </div>
+      </section>
+
+      <!-- Pauza -->
+      <section id="pauseScreen" class="overlay hidden">
+        <h2>PAUZA</h2>
+        <div class="btn-row">
+          <button id="btnResume" class="btn primary">DAVOM ETISH</button>
+          <button id="btnQuitToMenu" class="btn">MENYUGA CHIQISH</button>
+        </div>
+      </section>
+
+      <!-- O'yin tugadi -->
+      <section id="overScreen" class="overlay hidden">
+        <h2>O'YIN TUGADI</h2>
+        <div class="stats">
+          <p>Ball: <b id="finalScore">0</b></p>
+          <p>Yengilgan dushmanlar: <b id="finalKills">0</b></p>
+          <p>Daraja: <b id="finalLevel">1</b></p>
+        </div>
+        <p id="rankMessage" class="rank-message"></p>
+        <div class="btn-row">
+          <button id="btnRestart" class="btn primary">QAYTA O'YNASH</button>
+          <button id="btnOverRecords" class="btn">REKORDLAR</button>
+          <button id="btnOverMenu" class="btn">MENYU</button>
+        </div>
+      </section>
+
+      <!-- Rekordlar jadvali -->
+      <section id="recordsScreen" class="overlay hidden">
+        <h2>🏆 REKORDLAR</h2>
+        <div class="table-wrap">
+          <table id="recordsTable">
+            <thead>
+              <tr><th>#</th><th>Ism</th><th>Ball</th><th>Daraja</th><th>Sana</th></tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+          <p id="emptyRecords" class="empty hidden">Hozircha rekordlar yo'q. Birinchi bo'ling!</p>
+        </div>
+        <div class="btn-row">
+          <button id="btnBack" class="btn primary">ORQAGA</button>
+          <button id="btnClear" class="btn danger">TOZALASH</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Telefon uchun tugmalar -->
+    <div id="touch-controls">
+      <div class="touch-group">
+        <button data-action="left">◀</button>
+        <button data-action="right">▶</button>
+      </div>
+      <div class="touch-group">
+        <button data-action="jump">▲</button>
+        <button data-action="attack">⚔</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Three.js (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Post-processing (neon yorug'lik / bloom effekti). Yuklanmasa ham o'yin ishlayveradi -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
